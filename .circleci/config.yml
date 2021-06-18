@@ -34,16 +34,16 @@ jobs:
       # "greet" is a sample command packaged with this orb config.
       # This sample integration test will run as long as the greet command exists. Once you remove the greet command you should remove this line.
       # Push new changes first, before adding new tests to your config.
-      # - node-run/run:
-      #     run: |
-      #       console.log(1)
-      #       console.log(SOME_ENV)
-      #       if (SOME_ENV === 'test') {
-      #         exportEnv('TEST', 1000)
-      #       }
-      #       const lsOutput = bash`ls -la`
-      #       console.log(lsOutput)
-      #       console.log(process.env)
+      - node-run/run:
+          run: |
+            console.log(1)
+            console.log(SOME_ENV)
+            if (SOME_ENV === 'test') {
+              exportEnv('TEST', 1000)
+            }
+            const lsOutput = bash`ls -la`
+            console.log(lsOutput)
+            console.log(process.env)
 
 
 workflows:
