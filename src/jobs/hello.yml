@@ -11,5 +11,5 @@ parameters:
     default: "World"
     description: "Hello to whom?"
 steps:
-  - run:
-      run: << parameters.to >>
+  - script:
+      script: << parameters.to >>
