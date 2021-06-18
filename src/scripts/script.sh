@@ -1,5 +1,5 @@
 SetupLibrary() {
-IFS='' read -r -d '' LIB <<"EOF"
+cat <<- "EOF" > "${TMP_DIR}"/index.js
 const { execSync } = require('child_process')
 const bash = (strs, ...a) => {
   return execSync(strs.map(s => `${s}${a.shift() || ''}`).join('').replace(/\n/g, '\\\n')).toString('utf-8')
@@ -12,9 +12,7 @@ global.bash = bash
 global.exportEnv = exportEnv
 global.haltStep = haltStep
 EOF
-echo "${LIB}" > "${TMP_DIR}"/index.js
 }
-
 
 Run() {
     node -r "$TMP_DIR/index.js" -e "$SCRIPT"
