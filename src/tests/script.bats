@@ -1,7 +1,7 @@
 # Runs prior to every test
 setup() {
     # Load our script file.
-    source ./src/scripts/run.sh
+    source ./src/scripts/script.sh
 }
 
 @test '1: Greet the world' {
