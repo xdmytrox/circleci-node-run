@@ -1,18 +1,15 @@
 SetupLibrary() {
-cat > "${TMP_DIR}"/index.js <<- EOM
-const { execSync } = require('child_process')
-const bash = (strs, ...a) => {
-  return execSync(strs.map(s => `${s}${a.shift() || ''}`).join('').replace(/\n/g, '\\\n')).toString('utf-8')
+IFS='' read -r -d '' LIB <<"EOF"
+<?xml version="1.0" encoding='UTF-8'?>
+ <painting>
+   <img src="madonna.jpg" alt='Foligno Madonna, by Raphael'/>
+   <caption>This is Raphael's "Foligno" Madonna, painted in
+   <date>1511</date>-<date>1512</date>.</caption>
+ </painting>
+EOF
+echo "${LIB}" > "${TMP_DIR}"/index.js
 }
-const exportEnv = (k, v) => bash`echo "export ${k}=${v}" >> $BASH_ENV`
-const haltStep = () => bash`circleci-agent step halt`
 
-Object.keys(process.env).forEach(k => global[k] = process.env[k])
-global.bash = bash
-global.exportEnv = exportEnv
-global.haltStep = haltStep
-EOM
-}
 
 Run() {
     node -r "$TMP_DIR/index.js" -e "$SCRIPT"
