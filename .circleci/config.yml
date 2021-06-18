@@ -13,7 +13,7 @@ parameters:
   run-integration-tests:
     description: An internal flag to prevent integration test from running before a development version has been created.
     type: boolean
-    default: false
+    default: true
   dev-orb-version:
     description: >
       The development version of the orb to test.
@@ -26,13 +26,25 @@ jobs:
   # Define one or more jobs which will utilize your orb's commands and parameters to validate your changes.
   integration-test-1:
     docker:
-      - image: cimg/base:stable
+      - image: cimg/node:lts
+    environment:
+      SOME_ENV: test
     steps:
       - checkout
       # "greet" is a sample command packaged with this orb config.
       # This sample integration test will run as long as the greet command exists. Once you remove the greet command you should remove this line.
       # Push new changes first, before adding new tests to your config.
-      - node-run/greet
+      - node-run/run:
+          run: |
+            console.log(1)
+            console.log(SOME_ENV)
+            if (SOME_ENV === 'test') {
+              exportEnv('TEST', 1000)
+            }
+            const lsOutput = bash`ls -la`
+            console.log(lsOutput)
+            console.log(process.env)
+
 
 workflows:
   # Prior to producing a development orb (which requires credentials) basic validation, linting, and even unit testing can be performed.

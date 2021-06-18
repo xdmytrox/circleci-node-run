@@ -1,0 +1,19 @@
+description: >
+  Run node js script
+parameters:
+  run:
+    type: string
+    default: ""
+    description: "Node js script to be run"
+steps:
+  - run:
+      environment:
+        SCRIPT: <<parameters.run>>
+      name: Run NodeJS
+      command: |
+        TMP_DIR=$(mktemp -d -t ci-XXXXXXXXXX)
+
+        cat <<EOT >> $TMP_DIR/index.js
+        <<include(scripts/index.js)>>
+        EOT
+        <<include(scripts/run.sh)>>
