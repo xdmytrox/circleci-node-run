@@ -1,5 +1,5 @@
 SetupLibrary() {
-cat > ${TMP_DIR}/index.js <<- EOM
+cat > "${TMP_DIR}"/index.js <<- EOM
 const { execSync } = require('child_process')
 const bash = (strs, ...a) => {
   return execSync(strs.map(s => `${s}${a.shift() || ''}`).join('').replace(/\n/g, '\\\n')).toString('utf-8')
