@@ -11,6 +11,7 @@ steps:
       command: |
         TMP_DIR=$(mktemp -d -t ci-XXXXXXXXXX)
         echo "export TMP_DIR=${TMP_DIR}" >> ${BASH_ENV}
+
         cat <<- "EOF" > "${TMP_DIR}"/index.js
           <<include(scripts/index.js)>>
         EOF
