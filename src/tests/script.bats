@@ -4,10 +4,8 @@ setup() {
     source ./src/scripts/script.sh
 }
 
-@test '1: Greet the world' {
-    # Mock environment variables or functions by exporting them (after the script has been sourced)
-    # export PARAM_TO="World"
-    # Capture the output of our "Greet" function
-    # result=$(Greet)
-    [ "1" == "1" ]
+@test '1: Run js script' {
+    export SCRIPT="console.log(1)"
+    result=$(Run)
+    [ "$result" == "1" ]
 }
