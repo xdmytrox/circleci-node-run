@@ -3,13 +3,14 @@ cat <<- "EOF" > "$TMP_DIR"/index.js
 const { exec } = require('child_process')
 const MB = 1024 * 1024
 
-let cwd = process.cwd()
+let defaultCwd = process.cwd()
 const cwd = (strs, ...args) => {
   const newCwd = strs
   .map(s => `${s}${args.shift() || ''}`)
   .join('')
   .replace(/\n/g, '\\\n')
-  cwd = newCwd
+  defaultCwd = newCwd
+  return true
 }
 
 const bash = (strs, ...args) => {
@@ -18,7 +19,7 @@ const bash = (strs, ...args) => {
     .join('')
     .replace(/\n/g, '\\\n')
   const cmdForLog = cmd.substr(0, 20)
-  const options = { shell: '/bin/bash', cwd, maxBuffer: 50 * MB }
+  const options = { shell: '/bin/bash', cwd: defaultCwd, maxBuffer: 50 * MB }
   const child = exec(cmd, options);
 
   const promise = new Promise((resolve, reject) => {
@@ -52,6 +53,7 @@ Object.keys(process.env).forEach(k => global[k] = process.env[k])
 global.$ = bash
 global.EE = exportEnv
 global.stopJob = stopJob
+global.cwd = cwd
 EOF
 }
 
