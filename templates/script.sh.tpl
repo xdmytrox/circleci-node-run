@@ -27,5 +27,7 @@ ORB_TEST_ENV="bats-core"
 if [ "${0#*$ORB_TEST_ENV}" == "$0" ]; then
     TMP_DIR=$(mktemp -d -t ci-XXXXXXXXXX)
     SetupLibrary
+    echo "Script to be RUN"
+    echo "$SCRIPT"
     Run
 fi

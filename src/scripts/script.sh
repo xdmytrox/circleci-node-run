@@ -13,6 +13,7 @@ const cwd = (strs, ...args) => {
   return true
 }
 
+let cmdCount = 0
 /**
  * @param {object} params
  * @param {boolean} params.autoFail
@@ -22,11 +23,12 @@ const bash = (params) => {
     const cmd = strs
       .map(s => `${s}${args.shift() || ''}`)
       .join('')
-      .replace(/\n/g, '\\\n')
+      .replace(/\n/g, '\\\n');
+    cmdCount += 1
     const cmdForLog = cmd.substr(0, 20)
     const options = { shell: '/bin/bash', cwd: defaultCwd, maxBuffer: 50 * MB }
     const child = exec(cmd, options);
-
+    console.log(`Command Id: ${cmdCount} \n ${cmd}`)
     const promise = new Promise((resolve, reject) => {
       child.on('error', reject);
       child.on('exit', (exitCode) => {
@@ -44,10 +46,10 @@ const bash = (params) => {
       });
     })
 
-    child.stdout.on('data', data => console.log(`#${cmdForLog}... > \n${data}`));
-    child.stderr.on('data', data => console.error(`#${cmdForLog}... > \n${data}`));
+    child.stdout.on('data', data => console.log(`#${cmdCount} > ${data}`));
+    child.stderr.on('data', data => console.error(`#${cmdCount} > ${data}`));
     child.stdout.on('data', data => promise.stdout += data.toString());
-    child.stdout.on('data', data => promise.stderr += data.toString());
+    child.stderr.on('data', data => promise.stderr += data.toString());
 
     promise.stdout = ''
     promise.stderr = ''
@@ -92,5 +94,7 @@ ORB_TEST_ENV="bats-core"
 if [ "${0#*$ORB_TEST_ENV}" == "$0" ]; then
     TMP_DIR=$(mktemp -d -t ci-XXXXXXXXXX)
     SetupLibrary
+    echo "Script to be RUN"
+    echo "$SCRIPT"
     Run
 fi
