@@ -24,6 +24,24 @@ steps:
       greeting: << parameters.greeting >>
 ```
 
+```yaml
+description: >
+  Sample description
+# What will this job do?
+# Descriptions should be short, simple, and clear.
+
+executor: default
+
+parameters:
+  to:
+    type: string
+    default: "World"
+    description: "Hello to whom?"
+steps:
+  - script:
+      script: << parameters.to >>
+```
+
 ## See:
  - [Orb Author Intro](https://circleci.com/docs/2.0/orb-author-intro/#section=configuration)
  - [How To Author Commands](https://circleci.com/docs/2.0/reusing-config/#authoring-parameterized-jobs)
