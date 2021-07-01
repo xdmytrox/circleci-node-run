@@ -23,7 +23,6 @@ parameters:
     default: "dev:alpha"
 
 jobs:
-  # Define one or more jobs which will utilize your orb's commands and parameters to validate your changes.
   integration-test-1:
     docker:
       - image: cimg/node:lts
@@ -31,16 +30,19 @@ jobs:
       SOME_ENV: test
     steps:
       - checkout
-      # "greet" is a sample command packaged with this orb config.
-      # This sample integration test will run as long as the greet command exists. Once you remove the greet command you should remove this line.
-      # Push new changes first, before adding new tests to your config.
       - node-run/script:
           script: |
-            console.log(1)
             console.log(SOME_ENV)
             const { stdout } = await $`ls -la`
             console.log(stdout)
             console.log(process.env)
+
+            const subFolderName = 'subtest'
+            await $`mkdir -p test/${subFolderName}`
+            cwd`./test`
+            const { stdout } = await $`ls -la`
+            assert(stdout.includes(subFolderName))
+
 
 
 workflows:
