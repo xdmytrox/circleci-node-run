@@ -12,12 +12,12 @@ const cwd = (strs, ...args) => {
   defaultCwd = newCwd
   return true
 }
+
 /**
- * @param {object} options
- * @param {boolean} options.autoFail
- * @returns 
+ * @param {object} params
+ * @param {boolean} params.autoFail
  */
-const bash = (options) => {
+const bash = (params) => {
   return (strs, ...args) => {
     const cmd = strs
       .map(s => `${s}${args.shift() || ''}`)
@@ -36,12 +36,11 @@ const bash = (options) => {
           stderr: promise.stderr,
           exitCode: exitCode
         }
-        if (options.autoFail && exitCode !== 0) {
+        if (params.autoFail && exitCode !== 0) {
           reject(result)
         } else {
           resolve(result)
         }
-        
       });
     })
 
@@ -63,7 +62,7 @@ const stopJob = () => $`circleci-agent step halt`
 
 Object.keys(process.env).forEach(k => global[k] = process.env[k])
 global.$ = bash({ autoFail: true })
-global.$$ = bash({ autoFail: true })
+global.$$ = bash({ autoFail: false })
 global.EE = exportEnv
 global.stopJob = stopJob
 global.cwd = cwd
