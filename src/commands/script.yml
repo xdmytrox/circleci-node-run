@@ -1,0 +1,13 @@
+description: >
+  Run node js script
+parameters:
+  script:
+    type: string
+    default: ""
+    description: "Node js script to be run"
+steps:
+  - run:
+      environment:
+        SCRIPT: <<parameters.script>>
+      name: Run NodeJS
+      command: <<include(scripts/script.sh)>>
