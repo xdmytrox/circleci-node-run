@@ -69,7 +69,7 @@ jobs:
             (async () => {
               try {
                 await $`exit 1`
-              } catch (err) { 
+              } catch (err) {
                 return;
               }
               throw new Error('Integration test not passed')
@@ -84,6 +84,13 @@ jobs:
             })();
       - node-run/script:
           step_name: Test \#5
+          npm_modules: 'axios'
+          script: |
+            const axios = require('axios')
+            const r = await axios.post('https://httpbin.org/anything', { test: 1 });
+            assert.ok(r.data.json.test === 1)
+      - node-run/script:
+          step_name: Test \#6
           script: |
             stopJob()
       - run: exit 1 # Should not be executed otherwise fail job

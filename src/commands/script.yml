@@ -5,6 +5,10 @@ parameters:
     type: string
     default: ""
     description: "Node js script to be run"
+  npm_modules:
+    type: string
+    default: ""
+    description: "npm modules to be installed in format 'package_1@semver;package_2;package_3'"
   step_name:
     type: string
     default: "Run NodeJS"
@@ -34,5 +38,6 @@ steps:
       when: <<parameters.when>>
       environment:
         SCRIPT: <<parameters.script>>
+        NPM_MODULES: <<parameters.npm_modules>>
       name: <<parameters.step_name>>
       command: <<include(scripts/script.sh)>>
