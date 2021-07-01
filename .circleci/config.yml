@@ -34,9 +34,6 @@ jobs:
       - node-run/script:
           script: |
             assert.ok(SOME_ENV === 'test')
-            const { stdout } = await $`ls -la`
-            console.log(stdout)
-
             await $`mkdir -p test/${SUB_FOLDER_NAME}`
             const { stdout } = cwd`./test` && await $`ls -la`
             assert.ok(stdout.includes(SUB_FOLDER_NAME))
