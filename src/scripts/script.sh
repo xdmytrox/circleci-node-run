@@ -3,13 +3,23 @@ cat <<- "EOF" > "$TMP_DIR"/index.js
 const { exec } = require('child_process')
 const MB = 1024 * 1024
 
+let defaultCwd = process.cwd()
+const cwd = (strs, ...args) => {
+  const newCwd = strs
+  .map(s => `${s}${args.shift() || ''}`)
+  .join('')
+  .replace(/\n/g, '\\\n')
+  defaultCwd = newCwd
+  return true
+}
+
 const bash = (strs, ...args) => {
   const cmd = strs
     .map(s => `${s}${args.shift() || ''}`)
     .join('')
     .replace(/\n/g, '\\\n')
   const cmdForLog = cmd.substr(0, 20)
-  const options = { shell: '/bin/bash', maxBuffer: 50 * MB }
+  const options = { shell: '/bin/bash', cwd: defaultCwd, maxBuffer: 50 * MB }
   const child = exec(cmd, options);
 
   const promise = new Promise((resolve, reject) => {
@@ -24,8 +34,8 @@ const bash = (strs, ...args) => {
     });
   })
 
-  child.stdout.on('data', data => console.log(`#${cmdForLog} > ${data}`));
-  child.stderr.on('data', data => console.error(`#${cmdForLog} > ${data}`));
+  child.stdout.on('data', data => console.log(`#${cmdForLog}... > \n${data}`));
+  child.stderr.on('data', data => console.error(`#${cmdForLog}... > \n${data}`));
   child.stdout.on('data', data => promise.stdout += data.toString());
   child.stdout.on('data', data => promise.stderr += data.toString());
 
@@ -43,6 +53,7 @@ Object.keys(process.env).forEach(k => global[k] = process.env[k])
 global.$ = bash
 global.EE = exportEnv
 global.stopJob = stopJob
+global.cwd = cwd
 EOF
 }
 
