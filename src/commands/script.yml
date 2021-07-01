@@ -5,9 +5,39 @@ parameters:
     type: string
     default: ""
     description: "Node js script to be run"
+  npm_modules:
+    type: string
+    default: ""
+    description: "npm modules to be installed in format 'package_1@semver;package_2;package_3'"
+  step_name:
+    type: string
+    default: "Run NodeJS"
+    description: "Name of step"
+  no_output_timeout:
+    type: string
+    default: "10m"
+    description: "It's circleci's no_output_timeout for script step"
+  background:
+    type: boolean
+    default: false
+    description: "It's circleci's background for script step"
+  working_directory:
+    type: string
+    default: './'
+    description: "It's circleci's working_directory for script step"
+  when:
+    type: enum
+    enum: ["on_success", "on_fail", "always"]
+    default: 'on_success'
+    description: "It's circleci's when for script step"
 steps:
   - run:
+      no_output_timeout: <<parameters.no_output_timeout>>
+      background: <<parameters.background>>
+      working_directory: <<parameters.working_directory>>
+      when: <<parameters.when>>
       environment:
         SCRIPT: <<parameters.script>>
-      name: Run NodeJS
+        NPM_MODULES: <<parameters.npm_modules>>
+      name: <<parameters.step_name>>
       command: <<include(scripts/script.sh)>>
