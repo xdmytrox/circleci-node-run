@@ -7,15 +7,6 @@ parameters:
     description: "Node js script to be run"
 steps:
   - run:
-      name: Setup Helper Library
-      command: |
-        TMP_DIR=$(mktemp -d -t ci-XXXXXXXXXX)
-        echo "export TMP_DIR=${TMP_DIR}" >> ${BASH_ENV}
-
-        cat <<- "EOF" > "${TMP_DIR}"/index.js
-          <<include(scripts/index.js)>>
-        EOF
-  - run:
       environment:
         SCRIPT: <<parameters.script>>
       name: Run NodeJS
