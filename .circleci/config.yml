@@ -40,6 +40,24 @@ jobs:
             EE('ENV_VAR_NAME', 1000)
       - node-run/script:
           script: |
+            (async () => {
+              try {
+                await $`exit 1`
+              } catch (err) {
+                return;
+              }
+              throw new Error('Integration test not passed')
+            })();
+
+            (async () => {
+              try {
+                await $$`exit 1`
+              } catch (err) {
+                throw new Error('Integration test not passed')
+              }
+            })();
+      - node-run/script:
+          script: |
               assert.ok(ENV_VAR_NAME === '1000')
               stopJob()
       - run: exit 1 # Should not be executed otherwise fail job
