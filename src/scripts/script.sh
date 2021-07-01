@@ -1,7 +1,12 @@
 SetupLibrary() {
 cat <<- "EOF" > "$TMP_DIR"/index.js
 const { exec } = require('child_process')
+const { once } = require('events')
 const MB = 1024 * 1024
+
+const write = async (stream, m) => {
+  stream.write(m) || await once(stream, 'drain')
+}
 
 let defaultCwd = process.cwd()
 const cwd = (strs, ...args) => {
@@ -46,8 +51,8 @@ const bash = (params) => {
       });
     })
 
-    child.stdout.on('data', data => console.log(`#${cmdCount} > ${data}`));
-    child.stderr.on('data', data => console.error(`#${cmdCount} > ${data}`));
+    child.stdout.on('data', async data => await write(process.stdout, `#${cmdCount} > ${data}`));
+    child.stderr.on('data', async data => await write(process.stderr, `#${cmdCount} > ${data}`));
     child.stdout.on('data', data => promise.stdout += data.toString());
     child.stderr.on('data', data => promise.stderr += data.toString());
 
@@ -88,12 +93,20 @@ END
     node -r "$TMP_DIR/index.js" -e "$WRAPPER"
 }
 
+SetupModules() {
+    export NODE_PATH=$TMP_DIR/node_modules
+    MODULES=$(echo "$NPM_MODULES" | sed -r 's/[;]+/ /g')
+    # shellcheck disable=SC2086
+    npm install --no-package-lock --prefix "$TMP_DIR" $MODULES
+}
+
 # Will not run if sourced for bats-core tests.
 # View src/tests for more information.
 ORB_TEST_ENV="bats-core"
 if [ "${0#*$ORB_TEST_ENV}" == "$0" ]; then
     TMP_DIR=$(mktemp -d -t ci-XXXXXXXXXX)
     SetupLibrary
+    SetupModules
     echo "Script to be RUN"
     echo "$SCRIPT"
     Run

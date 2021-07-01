@@ -32,6 +32,7 @@ jobs:
     steps:
       - checkout
       - node-run/script:
+          step_name: Test \#1
           script: |
             assert.ok(SOME_ENV === 'test')
             await $`mkdir -p test/${SUB_FOLDER_NAME}`
@@ -39,6 +40,31 @@ jobs:
             assert.ok(stdout.includes(SUB_FOLDER_NAME))
             EE('ENV_VAR_NAME', 1000)
       - node-run/script:
+          step_name: Test \#1
+          script: assert.ok(ENV_VAR_NAME === '1000')
+      - node-run/script:
+          step_name: Test \#2
+          working_directory: './test'
+          script: |
+            const { stdout } = await $`ls -la`
+            assert.ok(stdout.includes(SUB_FOLDER_NAME))
+      - node-run/script:
+          step_name: Test \#3
+          background: true
+          script: |
+            setTimeout(async () => {
+              await $`mkdir -p test2Folder`
+            }, 1000)
+      - node-run/script:
+          step_name: Test \#3
+          background: false
+          script: |
+            setTimeout(async () => {
+              const { stdout } = await $`ls -la`
+              assert.ok(stdout.includes('test2Folder'))
+            }, 1000)
+      - node-run/script:
+          step_name: Test \#4
           script: |
             (async () => {
               try {
@@ -57,16 +83,24 @@ jobs:
               }
             })();
       - node-run/script:
+          step_name: Test \#5
+          npm_modules: 'axios'
           script: |
-            assert.ok(ENV_VAR_NAME === '1000')
+            const axios = require('axios')
+            const r = await axios.post('https://httpbin.org/anything', { test: 1 });
+            assert.ok(r.data.json.test === 1)
+      - node-run/script:
+          step_name: Test \#6
+          script: |
             stopJob()
       - run: exit 1 # Should not be executed otherwise fail job
+
   test-js-lib:
     docker:
       - image: cimg/node:lts
     steps:
       - checkout
-      - run: node ./lib/test.js
+      - run: node --unhandled-rejections=strict ./lib/test.js
 
 workflows:
   # Prior to producing a development orb (which requires credentials) basic validation, linting, and even unit testing can be performed.
