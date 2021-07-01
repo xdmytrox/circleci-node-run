@@ -1,7 +1,12 @@
 SetupLibrary() {
 cat <<- "EOF" > "$TMP_DIR"/index.js
 const { exec } = require('child_process')
+const { once } = require('events')
 const MB = 1024 * 1024
+
+const write = async (stream, m) => {
+  stream.write(m) || await once(stream, 'drain')
+}
 
 let defaultCwd = process.cwd()
 const cwd = (strs, ...args) => {
@@ -46,8 +51,8 @@ const bash = (params) => {
       });
     })
 
-    child.stdout.on('data', data => console.log(`#${cmdCount} > ${data}`));
-    child.stderr.on('data', data => console.error(`#${cmdCount} > ${data}`));
+    child.stdout.on('data', async data => await write(process.stdout, `#${cmdCount} > ${data}`));
+    child.stderr.on('data', async data => await write(process.stderr, `#${cmdCount} > ${data}`));
     child.stdout.on('data', data => promise.stdout += data.toString());
     child.stderr.on('data', data => promise.stderr += data.toString());
 
