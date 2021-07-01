@@ -28,21 +28,24 @@ jobs:
       - image: cimg/node:lts
     environment:
       SOME_ENV: test
+      SUB_FOLDER_NAME: 'subtest'
     steps:
       - checkout
       - node-run/script:
           script: |
-            console.log(SOME_ENV)
+            assert.ok(SOME_ENV === 'test')
             const { stdout } = await $`ls -la`
             console.log(stdout)
-            console.log(process.env)
 
-            const subFolderName = 'subtest'
-            await $`mkdir -p test/${subFolderName}`
-            cwd`./test`
-            const { stdout } = await $`ls -la`
-            assert(stdout.includes(subFolderName))
-
+            await $`mkdir -p test/${SUB_FOLDER_NAME}`
+            const { stdout } = cwd`./test` && await $`ls -la`
+            assert.ok(stdout.includes(SUB_FOLDER_NAME))
+            EE('ENV_VAR_NAME', 1000)
+      - node-run/script:
+          script: |
+              assert.ok(ENV_VAR_NAME === '1000')
+              stopJob()
+      - run: exit 1 # Should not be executed otherwise fail job
 
 
 workflows:
