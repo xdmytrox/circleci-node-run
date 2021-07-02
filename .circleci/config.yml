@@ -36,7 +36,7 @@ jobs:
           script: |
             assert.ok(SOME_ENV === 'test')
             await $`mkdir -p test/${SUB_FOLDER_NAME}`
-            const { stdout } = cwd`./test` && await $`ls -la`
+            const { stdout } = $cwd`./test` && await $`ls -la`
             assert.ok(stdout.includes(SUB_FOLDER_NAME))
             EE('ENV_VAR_NAME', 1000)
             assert.ok(process.env['ENV_VAR_NAME'] === '1000')
@@ -85,10 +85,10 @@ jobs:
             })();
       - node-run/script:
           step_name: Test \#5
-          npm_modules: 'axios'
+          npm_modules: |
+            axios#ax
           script: |
-            const axios = require('axios')
-            const r = await axios.post('https://httpbin.org/anything', { test: 1 });
+            const r = await ax.post('https://httpbin.org/anything', { test: 1 });
             assert.ok(r.data.json.test === 1)
       - node-run/script:
           step_name: Test \#6

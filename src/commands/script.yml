@@ -8,7 +8,14 @@ parameters:
   npm_modules:
     type: string
     default: ""
-    description: "npm modules to be installed in format 'package_1@semver;package_2;package_3'"
+    description: |
+      npm modules to be installed in format
+        npm_modules: |
+          package_1@semver#alias
+          package_2@semver
+          package_3#alias
+
+        e.g. `lodash#_` module will be available as `_.pick()`
   step_name:
     type: string
     default: "Run NodeJS"
