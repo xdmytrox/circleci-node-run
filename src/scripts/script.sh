@@ -110,7 +110,7 @@ const modules = process.env.NPM_MODULES
     .filter(l => l.trim() !== '')
     .map(m => {
         let [module, alias = ''] = m.split('#');
-        let [moduleName = '', version = ''] = module.split('@')
+        let [moduleName = '', version = ''] = module.split(/(?<=.+)@/)
         alias = alias.trim() === '' ? moduleName : alias.trim()
         moduleName = moduleName.trim()
         version = version.trim() === '' ? 'latest' : version.trim()
