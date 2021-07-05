@@ -87,9 +87,11 @@ jobs:
           step_name: Test \#5
           npm_modules: |
             axios#ax
+            @oclif/command#oclifc
           script: |
             const r = await ax.post('https://httpbin.org/anything', { test: 1 });
             assert.ok(r.data.json.test === 1)
+            console.log(oclifc.flags)
       - node-run/script:
           step_name: Test \#6
           script: |
