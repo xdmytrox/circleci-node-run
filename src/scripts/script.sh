@@ -103,9 +103,13 @@ global.$cwd = cwd
 global.shell = shell
 global.$preamble = shellPreamble
 EOF
-cat <<- "EOF" > "$TMP_DIR"/install_npm_modules.js
-  const { execSync } = require('child_process')
-const modules = process.env.NPM_MODULES
+cat <<- "EOF" > "$TMP_DIR"/parse_modules.js
+  /**
+ * @param {string} modules
+ * @returns {{ moduleName: string, alias: string, version: string }[]}
+ */
+module.exports = (modules) => {
+  return modules
     .split('\n')
     .filter(l => l.trim() !== '')
     .map(m => {
@@ -120,7 +124,14 @@ const modules = process.env.NPM_MODULES
         }
         return { moduleName, alias, version }
     })
-    .reduce((acc, { moduleName, version }) => acc += `${moduleName}@${version}`, '')
+}
+EOF
+cat <<- "EOF" > "$TMP_DIR"/install_npm_modules.js
+  const { execSync } = require('child_process')
+const parse_modules = require('./parse_modules')
+
+const modules = parse_modules(process.env.NPM_MODULES)
+    .reduce((acc, { moduleName, version }) => acc += `${moduleName}@${version} `, '')
 
 if (modules === '') process.exit(0)
 execSync(`npm install --no-package-lock --prefix ${process.env.TMP_DIR} ${modules}`)
@@ -130,22 +141,12 @@ EOF
 
 Run() {
 cat <<- "EOF" > "$TMP_DIR"/wrapped.js
-  (async () => {
-  const modules = process.env.NPM_MODULES
-  modules
-    .split('\n')
-    .filter(l => l.trim() !== '')
-    .map(m => {
-        let [module, alias = ''] = m.split('#');
-        let [moduleName = ''] = module.split('@')
-        alias = alias.trim() === '' ? moduleName : alias.trim()
-        moduleName = moduleName.trim()
-        if(moduleName === '') {
-            console.error('No module name provided')
-            return process.exit(1)
-        }
-        eval(`global['${alias}'] = require('${moduleName}')`)
-    })
+  const parse_modules = require(`${process.env.TMP_DIR}/parse_modules`)
+
+;(async () => {
+  parse_modules(process.env.NPM_MODULES)
+    .map(({ moduleName, alias }) => global[alias] = require(moduleName))
+
     eval(`
       (async () => {
         ${process.env.SCRIPT}
@@ -176,8 +177,10 @@ EOF
 # View src/tests for more information.
 ORB_TEST_ENV="bats-core"
 if [ "${0#*$ORB_TEST_ENV}" == "$0" ]; then
-  TMP_DIR=$(mktemp -d -t ci-XXXXXXXXXX)
-  NODE_PATH=$TMP_DIR/node_modules
+  TMP_ROOT=$(dirname "$(mktemp -u)")
+  TMP_DIR="${TMP_ROOT}/ci-node-run-temp"
+  mkdir -p "$TMP_DIR"
+  NODE_PATH="${TMP_DIR}/node_modules"
   export NODE_PATH
   export TMP_DIR
   SetupModules
