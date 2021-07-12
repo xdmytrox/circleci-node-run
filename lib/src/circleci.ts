@@ -1,0 +1,118 @@
+import { PipelineApi, TriggerPipelineParameters } from 'circleci-typescript-axios'
+import { wait } from './utils'
+
+type Options = {
+  apiKey: string
+}
+type triggerAndWaitParameters<T> = {
+  project: string
+  parameters: T
+  branch?: string
+  timeout?: number
+  interval?: number
+}
+
+export class CircleCI {
+  private apiKey: string
+  private basePath = 'https://circleci.com/api/v2'
+  private pipelineApi: PipelineApi
+  constructor(options: Options) {
+    this.apiKey = options.apiKey
+    this.pipelineApi = new PipelineApi({ basePath: this.basePath, apiKey: this.apiKey })
+  }
+
+  private async waitForPipelineCreated(pipelineId: string) {
+    let state
+    do {
+      const pipeline = await this.pipelineApi.getPipelineById(pipelineId).then(_ => _.data)
+      console.log(`Checking pipeline:\n${JSON.stringify(pipeline, null, 2)}`)
+      state = pipeline.state
+      if (state === 'errored') throw new Error('Pipeline errored')
+      await wait(1000)
+    } while (state !== 'created')
+  }
+
+  private async waitForPipelineCompleted(pipelineId: string, timeout: number, interval: number) {
+    const deadline = Date.now() + timeout
+    const FAIL_STATUSES = ['failed', 'canceled', 'error']
+    let success = false;
+    let counter = 0
+    while (!success) {
+      await wait(interval)
+      if (Date.now() >= deadline) throw new Error('Timeout Error')
+      const { data: { items: workflows } } = await this.pipelineApi.listWorkflowsByPipelineId(pipelineId)
+      console.log(
+        `Checking workflows[#${counter++}][timeout_in=${deadline - Date.now()}]:\n` +
+        `${JSON.stringify(workflows, null, 2)}`
+      )
+      success = workflows.every(w => w.status === 'success')
+      if (
+        workflows.length === 0 || workflows.some(w => FAIL_STATUSES.includes(w.status))
+      ) throw new Error('Some workflow failed')
+    }
+  }
+
+  public async triggerAndWait<T extends TriggerPipelineParameters['parameters']> (params: triggerAndWaitParameters<T>) {
+    const { project, parameters, branch = 'master', timeout = Infinity, interval = 2000 } = params
+    console.log(`Trigger pipeline:\n${JSON.stringify(params, null, 2)}`)
+    const trigger = await this.pipelineApi.triggerPipeline(project, undefined, undefined, { branch, parameters })
+    const pipelineId = trigger.data.id
+    await this.waitForPipelineCreated(pipelineId)
+    await this.waitForPipelineCompleted(pipelineId, timeout, interval)
+  }
+}
+
+// ;(async () => {
+//   const project = 'gh/shopmonkeyus/e2e'
+//   const branch = 'master'
+//   const parameters = {
+//     environment_name: 'bcore-278',
+//     run_workflow_smoke: true,
+//     run_workflow_regression: false
+//   }
+//   // const { data: { id } } = await pipelineApi.getPipelineByNumber(project, '397')
+//   // const { data } = await pipelineApi.listWorkflowsByPipelineId(id)
+//   // log(data)
+
+//   try {
+//     await triggerAndWait({ project, branch, parameters })
+//   } catch (err) {
+//     console.log(err)
+//   }
+//   // const trigger = await pipelineApi.triggerPipeline(project, 't', 't2', {
+//   //   branch: 'master',
+//   //   parameters: {
+//   //     environment_name: 'bcore-278',
+//   //     run_workflow_smoke: true,
+//   //     run_workflow_regression: false
+//   //   }
+//   // })
+//   // const pipelineId = trigger.data.id
+//   // while (true) {
+//   //   const [pipeline, workflows] =await Promise.all([
+//   //     pipelineApi.getPipelineById(pipelineId),
+//   //     pipelineApi.listWorkflowsByPipelineId(pipelineId)
+//   //   ])
+//   //   const jobTasks = workflows.data.items.map(async (workflow) => {
+//   //     return (await workflowApi.listWorkflowJobs(workflow.id)).data
+//   //   })
+//   //   const jobs = await Promise.all(jobTasks)
+//   //   console.log('\nPipeline:')
+//   //   log(pipeline.data)
+//   //   console.log('\nWorkflows:')
+//   //   log(workflows.data)
+//   //   console.log('\nJobs:')
+//   //   log(jobs)
+//   //   console.log('\n\n')
+//   //   await wait(5000)
+//   // }
+//   // const pipelines = await pipelineApi.listPipelinesForProject(project)
+//   // // log(pipelines.data)
+//   // const pipelineData = pipelines.data.items[0]
+//   // log(pipelineData)
+//   // const config = await pipelineApi.getPipelineConfigById(pipelineData.id)
+//   // const workflows = await pipelineApi.listWorkflowsByPipelineId(pipelineData.id)
+//   // log(workflows.data)
+//   // await jobApi.getJobDetails()
+
+// })()

@@ -1,0 +1,9 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "outDir": "dist",
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "declaration": true,
+  }
+}

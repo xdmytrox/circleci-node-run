@@ -1,14 +1,5 @@
 version: 2.1
 
-orbs:
-  # Replace this with your own!
-  node-run: drachovdmytro/node-run@<<pipeline.parameters.dev-orb-version>>
-  orb-tools: circleci/orb-tools@10.0
-  bats: circleci/bats@1.0
-  shellcheck: circleci/shellcheck@2.0
-
-# Pipeline Parameters
-## These parameters are used internally by orb-tools. Skip to the Jobs section.
 parameters:
   run-integration-tests:
     description: An internal flag to prevent integration test from running before a development version has been created.
@@ -22,10 +13,39 @@ parameters:
     type: string
     default: "dev:alpha"
 
+orbs:
+  node-run: drachovdmytro/node-run@<<pipeline.parameters.dev-orb-version>>
+  orb-tools: circleci/orb-tools@10.0
+  circleci-cli: circleci/circleci-cli@0.1.9
+  bats: circleci/bats@1.0
+  shellcheck: circleci/shellcheck@2.0
+
+commands:
+  evaluate-current-version:
+    steps:
+      - circleci-cli/install
+      - run:
+          working_directory: ./lib
+          command: |
+            circleci --help
+            CURRENT_VERSION=$(circleci orb info drachovdmytro/node-run | grep Latest | grep -o -E '[0-9]+\.[0-9]+\.[0-9]+')
+            echo "export CURRENT_VERSION='${CURRENT_VERSION}'" >> $BASH_ENV
+  update-package-json-version:
+    steps:
+      - run:
+          working_directory: ./lib
+          command: |
+            cat package.json | \
+              jq \
+                -r \
+                --arg v "$CURRENT_VERSION" \
+                '.version = $v' > package.json.tmp
+            mv package.json.tmp package.json
+
 jobs:
   integration-test-1:
     docker:
-      - image: cimg/node:lts
+      - image: cimg/node:14.17
     environment:
       SOME_ENV: test
       SUB_FOLDER_NAME: 'subtest'
@@ -34,21 +54,22 @@ jobs:
       - node-run/script:
           step_name: Test \#1
           script: |
-            assert.ok(SOME_ENV === 'test')
-            await $`mkdir -p test/${SUB_FOLDER_NAME}`
+            assert.ok(e.SOME_ENV === 'test')
+            await $`mkdir -p test/${e.SUB_FOLDER_NAME}`
             const { stdout } = $cwd`./test` && await $`ls -la`
-            assert.ok(stdout.includes(SUB_FOLDER_NAME))
+            assert.ok(stdout.includes(e.SUB_FOLDER_NAME))
             EE('ENV_VAR_NAME', 1000)
             assert.ok(process.env['ENV_VAR_NAME'] === '1000')
+            assert.ok(e['ENV_VAR_NAME'] === '1000')
       - node-run/script:
           step_name: Test \#1
-          script: assert.ok(ENV_VAR_NAME === '1000')
+          script: assert.ok(e.ENV_VAR_NAME === '1000')
       - node-run/script:
           step_name: Test \#2
           working_directory: './test'
           script: |
             const { stdout } = await $`ls -la`
-            assert.ok(stdout.includes(SUB_FOLDER_NAME))
+            assert.ok(stdout.includes(e.SUB_FOLDER_NAME))
       - node-run/script:
           step_name: Test \#3
           background: true
@@ -98,35 +119,91 @@ jobs:
             stopJob()
       - run: exit 1 # Should not be executed otherwise fail job
 
-  test-js-lib:
+  integration-test-2:
     docker:
-      - image: cimg/node:lts
+      - image: cimg/node:14.17
     steps:
       - checkout
-      - run: node --unhandled-rejections=strict ./lib/test.js
+      - node-run/file:
+          step_name: "Test file script"
+          npm_modules: |
+            axios
+          file_path: .circleci/script.js
+
+  pack-build-test-publish-npm:
+    docker:
+      - image: cimg/node:14.17
+    steps:
+      - checkout
+      - run:
+          working_directory: ./lib
+          command: |
+            npm ci
+            npm run build
+            npm run test
+      - evaluate-current-version
+      - update-package-json-version
+      - run:
+          working_directory: ./lib
+          command: |
+            echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" > ~/.npmrc
+      - when:
+          condition:
+            equal: [ master, << pipeline.git.branch >> ]
+          steps:
+            - run:
+                working_directory: ./lib
+                command: |
+                  COMMIT_SUBJECT=$(git log -1 --pretty=%s.)
+                  SEMVER_INCREMENT=$(echo "${COMMIT_SUBJECT}" | sed -En 's/.*\[semver:(major|minor|patch|skip)\].*/\1/p')
+                  if [ -z "${SEMVER_INCREMENT}" ]; then
+                    exit 1
+                  elif [ "$SEMVER_INCREMENT" == "skip" ]; then
+                    exit 0
+                  else
+                    NEW_VERSION=$(npm version "$SEMVER_INCREMENT" | sed -E "s/^v(.*)/\\1/")
+                    echo "export NEW_VERSION='${NEW_VERSION}'" >> $BASH_ENV
+                    npm publish
+                  fi
+      - when:
+          condition:
+            equal: [ alpha, << pipeline.git.branch >> ]
+          steps:
+            - run:
+                working_directory: ./lib
+                command: |
+                  echo $NPM_TOKEN
+                  NEW_VERSION=$(npm version prerelease --preid alpha-${CIRCLE_SHA1:0:7} | sed -E "s/^v(.*)/\\1/")
+                  echo "export NEW_VERSION='${NEW_VERSION}'" >> $BASH_ENV
+                  echo "$NEW_VERSION"
+                  npm publish --tag alpha --verbose
+      - run: |
+          sed -i "s/{{__VERSION_PLACEHOLDER__}}/${NEW_VERSION}/g" ./src/scripts/script.sh
+          sed -i "s/{{__VERSION_PLACEHOLDER__}}/${NEW_VERSION}/g" ./src/scripts/file.sh
+      - orb-tools/pack
+      - persist_to_workspace:
+          paths:
+            - orb.yml
+          root: .
 
 workflows:
-  # Prior to producing a development orb (which requires credentials) basic validation, linting, and even unit testing can be performed.
-  # This workflow will run on every commit
   test-pack:
     unless: << pipeline.parameters.run-integration-tests >>
     jobs:
-      - orb-tools/lint # Lint Yaml files
-      - orb-tools/pack # Pack orb source
-      - test-js-lib
+      - orb-tools/lint
+      - pack-build-test-publish-npm:
+          context: npm-publishing
       - shellcheck/check:
           dir: ./src/scripts
           exclude: SC2148
-      # optional: Run BATS tests against your scripts
       - bats/run:
           path: ./src/tests
-      # Publish development version(s) of the orb.
       - orb-tools/publish-dev:
           orb-name: drachovdmytro/node-run
-          context: orb-publishing # A restricted context containing your private publishing credentials. Will only execute if approved by an authorized user.
+          context: orb-publishing
           requires:
             - orb-tools/lint
-            - orb-tools/pack
+            - pack-build-test-publish-npm
             - bats/run
             - shellcheck/check
       # Trigger an integration workflow to test the
@@ -146,6 +223,7 @@ workflows:
     jobs:
       # Run any integration tests defined within the `jobs` key.
       - integration-test-1
+      - integration-test-2
       # Publish a semver version of the orb. relies on
       # the commit subject containing the text "[semver:patch|minor|major|skip]"
       # as that will determine whether a patch, minor or major
@@ -160,6 +238,7 @@ workflows:
           publish-version-tag: false
           requires:
             - integration-test-1
+            - integration-test-2
           filters:
             branches:
               only:

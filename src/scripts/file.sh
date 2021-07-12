@@ -7,7 +7,7 @@ Setup() {
   export NODE_PATH
   export TMP_DIR
   export VERSION
-  export COMMAND_NAME="SCRIPT"
+  export COMMAND_NAME="FILE"
 }
 
 Run() {
@@ -19,7 +19,9 @@ Run() {
     --prefix "${TMP_DIR}" \
     "${PACKAGE}"
 
-  node "$TMP_DIR/node_modules/circleci-node-run/dist/register.js"
+  node --unhandled-rejections=strict \
+    -r "$TMP_DIR/node_modules/circleci-node-run/dist/register.js" \
+    "${FILE_PATH}"
 }
 
 # Will not run if sourced for bats-core tests.
