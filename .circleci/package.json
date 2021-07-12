@@ -1,0 +1,8 @@
+{
+  "name": "ci-scripts",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "circleci-node-run": "^0.6.3-alpha-b65e187.0"
+  }
+}
