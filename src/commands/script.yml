@@ -16,6 +16,9 @@ parameters:
           package_3#alias
 
         e.g. `lodash#_` module will be available as `_.pick()`
+  circleci_api_key_env:
+    type: env_var_name
+    default: "CIRCLECI_API_KEY"
   step_name:
     type: string
     default: "Run NodeJS"
@@ -46,5 +49,6 @@ steps:
       environment:
         SCRIPT: <<parameters.script>>
         NPM_MODULES: <<parameters.npm_modules>>
+        CIRCLECI_API_KEY_ENV_NAME: <<parameters.circleci_api_key_env>>
       name: <<parameters.step_name>>
       command: <<include(scripts/script.sh)>>

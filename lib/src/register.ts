@@ -28,9 +28,6 @@ declare global {
   }
 }
 
-const circleci = new CircleCI({
-  apiKey: process.env.CIRCLE_CI_API_KEY || ''
-})
 global.e = {}
 Object.keys(process.env).forEach(k => global.e[k] = process.env[k] as string)
 global.$ = shell.runForTemplateLiteral({ addPreamble: true, autoFail: true, multiLine: true })
@@ -39,7 +36,9 @@ global.EE = exportEnv
 global.stopJob = sj
 global.wait = w
 global.$cwd = shell.setCwd.bind(shell)
-global.ci = circleci
+global.ci = new CircleCI({
+  apiKey: e[e.CIRCLECI_API_KEY_ENV_NAME] || ''
+})
 
 installModules(process.env.NPM_MODULES || '', process.env.TMP_DIR || './')
 
