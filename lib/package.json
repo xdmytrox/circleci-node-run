@@ -3,6 +3,7 @@
   "version": "0.0.0-auto",
   "description": "library to extend circleci functionality within drachovdmytro/node-run orb",
   "main": "dist/register.js",
+  "types": "dist/register.d.ts",
   "scripts": {
     "build": "tsc",
     "test": "node --unhandled-rejections=strict ./tests/index.js"
